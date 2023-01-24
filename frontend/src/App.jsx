@@ -6,17 +6,29 @@ const socket = io.connect("http://localhost:3001");
 function App() {
   const [room, setRoom] = useState("");
   const [message, setMessage] = useState("");
-  const [messageReceived, setMessageReceived] = useState("");
+  const [allMessages, setAllMessages] = useState([]);
+  const [nickname, setNickname] = useState("");
 
   useEffect(() => {
     socket.on("receive_message", (data) => {
-      setMessageReceived(data.message);
+      if (data.message) {
+        let newMessage = {
+          sender: data.nickname,
+          message: data.message,
+        };
+        setAllMessages([...allMessages, newMessage]);
+      }
     });
-  }, [socket]);
+  }, [socket, allMessages]);
 
   const sendMessage = () => {
     if (room !== "") {
-      socket.emit("send_message", { message, room });
+      socket.emit("send_message", { message, room, nickname });
+      let newMessage = {
+        sender: nickname,
+        message: message,
+      };
+      setAllMessages([...allMessages, newMessage]);
       setMessage("");
     } else {
       alert(`Need id of the room to send message`);
@@ -35,6 +47,15 @@ function App() {
   return (
     <div className="App">
       <input
+        type="text"
+        placeholder="Nickname..."
+        onChange={(e) => setNickname(e.target.value)}
+      />
+      <button onClick={() => alert(`Nickname setted to ${nickname}`)}>
+        Set Nickname
+      </button>
+      <br />
+      <input
         type="number"
         placeholder="Room..."
         onChange={(e) => setRoom(e.target.value)}
@@ -50,7 +71,23 @@ function App() {
       <button onClick={sendMessage}>Send Message</button>
       <hr />
       <h1>Messages</h1>
-      {messageReceived}
+      <div>
+        {allMessages &&
+          allMessages.map((msgs, key) => {
+            return (
+              <div
+                key={key}
+                style={{
+                  backgroundColor:
+                    nickname === msgs.sender ? "lightblue" : "lightgreen",
+                }}
+              >
+                <h4>{msgs.sender} says:</h4>
+                <p> {msgs.message}</p>
+              </div>
+            );
+          })}
+      </div>
     </div>
   );
 }
